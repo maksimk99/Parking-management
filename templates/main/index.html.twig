@@ -1,0 +1,187 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello MainController!{% endblock %}
+
+{% block body %}
+<style>
+    .parkSpace a {
+        text-decoration: none!important
+    }
+
+    .parkSpace {
+        border-style: solid; border-width: 5px; border-bottom-width: 0
+    }
+
+    .greenColor div {
+        background-color: rgb(0, 128, 0);
+        color: white;
+    }
+
+    .redColor div {
+        background-color: rgb(128, 0, 0);
+        color: white;
+    }
+
+    .blueColor div {
+        background-color: rgb(0, 0, 128);
+        color: white;
+    }
+
+    .parkPlaceColorExplain {
+        height: 35px;
+        width: 200px;
+        text-align: center;
+    }
+
+    .custom-div-style {
+        height: 150px;
+        line-height: 150px;
+        text-align: center;
+    }
+
+    .inactiveLink {
+        pointer-events: none;
+        cursor: default;
+    }
+</style>
+
+    <div class="container">
+        <div class="row mt-2">
+            <div class="col d-flex align-items-center">
+                <div class="greenColor">
+                    <div class="parkPlaceColorExplain rounded p-1">free parking space</div>
+                </div>
+                <div class="redColor ml-2">
+                    <div class="parkPlaceColorExplain rounded p-1">occupied parking space</div>
+                </div>
+                <div class="blueColor ml-2">
+                    <div class="parkPlaceColorExplain rounded p-1">your parking space</div>
+                </div>
+            </div>
+            <div class="col-4 p-1 text-right border rounded shadow d-flex justify-content-end align-items-center">
+                <div>You are logged in as {{ app.user.username }},</div>
+                <a href="{{ path('app_logout') }}" class="btn btn-danger ml-3">Logout</a>
+            </div>
+        </div>
+    </div>
+
+<div class="container mt-3 parkSpace">
+    {% set index = 0 %}
+    {% for i in 0..4 %}
+        <div class="row mt-3">
+            <div class="col-sm">
+                <a href="#" id="parkSpace{{ parkPlaces[index].id }}"
+                   class="{{ parkPlaces[index].user == null ? 'greenColor' : (parkPlaces[index] in app.user.parkPlaces ?
+                   'blueColor' : 'redColor inactiveLink')}}" onclick="changeColor('parkSpace{{ parkPlaces[index].id }}')">
+                    <div class="w-100 border custom-div-style">parkPlace{{ parkPlaces[index].id }}</div></a>
+            </div>
+            <div class="col-sm"></div>
+            {% set index = index + 1 %}
+            <div class="col-sm">
+                <a href="#" id="parkSpace{{ parkPlaces[index].id }}"
+                   class="{{ parkPlaces[index].user == null ? 'greenColor' : (parkPlaces[index] in app.user.parkPlaces ?
+                   'blueColor' : 'redColor inactiveLink')}}" onclick="changeColor('parkSpace{{ parkPlaces[index].id }}')">
+                    <div class="w-100 border custom-div-style">parkPlace{{ parkPlaces[index].id }}</div></a>
+            </div>
+        </div>
+        {% set index = index + 1 %}
+    {% endfor %}
+    <div class="row mt-3">
+        <div class="col" style="border-bottom-style: solid; border-bottom-width: 5px"></div>
+        <div class="col-3"></div>
+        <div class="col" style="border-bottom-style: solid; border-bottom-width: 5px;"></div>
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="parkingPlaceModel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Modal title</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>One fine body&hellip;</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitButton">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascripts %}
+<script>
+    function changeColor(parkPlaceId) {
+        var greenColor = "rgb(0, 128, 0)";
+        var blueColor = "rgb(0, 0, 128)";
+        var parkPlace = $("#" + parkPlaceId + " div");
+        var color = parkPlace.css( "background-color" );
+        if (color === greenColor) {
+            $('.modal-title').text('Take a parking space');
+            $('.modal-body p').text("Are you sure you want to take parking space '" + parkPlaceId + "'");
+            $('#parkingPlaceModel #submitButton').attr("onclick", "takeParkingPlaceFunction('" + parkPlaceId + "')")
+                .text('Take place');
+            $('#parkingPlaceModel').modal('show');
+        } else if(color === blueColor) {
+            $('.modal-title').text('Vacate a parking space');
+            $('.modal-body p').text("Are you sure you want to vacate parking space '" + parkPlaceId + "'");
+            $('#parkingPlaceModel #submitButton').attr("onclick", "vacateParkingPlaceFunction('" + parkPlaceId + "')")
+                .text('Vacate place');
+            $('#parkingPlaceModel').modal('show');
+        }
+    }
+
+    function takeParkingPlaceFunction(parkPlaceId) {
+        $('#parkingPlaceModel').modal('hide');
+        $.ajax({
+            url:'{{ (path('park_place_take')) }}',
+            type: "POST",
+            dataType: "json",
+            data: {
+                "parkPlaceId": parkPlaceId
+            },
+            async: true,
+            success: function (data)
+            {
+                if (data.isSuccess === true) {
+                    $("#" + parkPlaceId + " div").css( "background-color", "rgb(0, 0, 128)");
+                } else {
+                    alert(data.errorMessage)
+                    $("#" + parkPlaceId).attr("class", "redColor inactiveLink");
+                }
+            },
+            error : function() {
+                alert('Error, something went wrong...');
+            }
+        });
+    }
+
+    function vacateParkingPlaceFunction(parkPlaceId) {
+        $('#parkingPlaceModel').modal('hide');
+        $.ajax({
+            url:'{{ (path('park_place_vacate')) }}',
+            type: "POST",
+            dataType: "json",
+            data: {
+                "parkPlaceId": parkPlaceId
+            },
+            async: true,
+            success: function (data)
+            {
+                if (data.isSuccess === true) {
+                    $("#" + parkPlaceId + " div").css( "background-color", "rgb(0, 128, 0)");
+                } else {
+                    alert(data.errorMessage)
+                    $("#" + parkPlaceId).attr("class", "redColor inactiveLink");
+                }
+            },
+            error : function() {
+                alert('Error, something went wrong...');
+            }
+        });
+    }
+
+</script>
+{% endblock %}
