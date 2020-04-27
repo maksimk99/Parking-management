@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package protobuf;
+
+message User
+{
+  int32 id = 1;
+  string username = 2;
+  repeated string roles = 3;
+  string password = 4;
+}
